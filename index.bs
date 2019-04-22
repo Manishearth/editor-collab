@@ -396,6 +396,7 @@ When an {{XRSession}} is created, the user agent MUST <dfn>initialize the sessio
   1. Let |session| be the newly created {{XRSession}} object.
   1. Let |mode| be the {{XRSessionMode}} passed to {{requestSession()}}.
   1. Initialize |session|'s [=XRSession/mode=] to |mode|.
+  1. [=Initialize the viewer space=].
   1. [=Initialize the render state=].
   1. If no other features of the user agent have done so already, perform the necessary platform-specific steps to initialize the device's tracking and rendering capabilities.
 
@@ -681,29 +682,49 @@ Each {{XRFrame}} has a <dfn for="XRFrame">active</dfn> boolean which is initiall
 
 The <dfn attribute for="XRFrame">session</dfn> attribute returns the {{XRSession}} that produced the {{XRFrame}}.
 
-<div class="algorithm" data-algorithm="get-viewer-pose">
+Each {{XRSpace}} has a <dfn for="XRSpace">trackingState</dfn> that must be "untracked", "3DOF", or "6DOF". Yeah yeah fill this in more.
 
-When the <dfn method for="XRFrame">getViewerPose(|referenceSpace|)</dfn> method is invoked, the user agent MUST run the following steps:
+Each {{XRSpace}} has a <dfn for="XRSpace">trackedOrigin</dfn> that describes the tracking system's knowledge of the {{XRSpace}}'s origin .
 
-  1. If the {{XRFrame}}'s [=active=] boolean is <code>false</code>, throw an {{InvalidStateError}} and abort these steps.
-  1. If the {{XRFrame}}'s [=animationFrame=] boolean is <code>false</code>, throw an {{InvalidStateError}} and abort these steps.
+Each {{XRSpace}} has a <dfn for="XRSpace">originOffset</dfn> that is set to the [=identity matrix=] unless overridden by an inherited type.
+
+Each {{XRSpace}} has a <dfn for="XRSpace">effectiveOrigin</dfn> is equal to the [=matrix multiplication=] of the |trackedOrigin| by the |originOffset|.
+
+Make an internal algorithm that does the getPose logic
+<div class="algorithm" data-algorithm="get-pose-internal">
+  1. Let |frame| be the {{XRFrame}} on which this algorithm is operating.
+  1. If |frame|'s [=active=] boolean is <code>false</code>, throw an {{InvalidStateError}} and abort these steps.
   1. Let |session| be the {{XRFrame}}'s {{XRFrame/session}} object.
-  1. If |referenceSpace|'s [=XRSpace/session=] does not equal |session|, throw an {{InvalidStateError}} and abort these steps.
-  1. If the [=viewer=]'s pose cannot be determined relative to |referenceSpace|, return <code>null</code>
-  1. Return a new {{XRViewerPose}} describing the [=viewer=]'s pose relative to the origin of |referenceSpace| at the timestamp of the {{XRFrame}}.
-
+  1. Let |originSpace| be the the {{XRSpace}} which defines the coordinate system in which the resulting {{XRPose}} will be defined.
+  1. If |originSpace|'s [=XRSpace/session=] does not equal |session|, throw an {{InvalidStateError}} and abort these steps.
+  1. If |originSpace|'s [=XRSpace/trackingState=] equals "untracked", return <code>null</code>.
+  1. Let |locatableSpace| be an {{XRSpace}} to be located relative to |originSpace|'s origin.
+  1. If |locatableSpace|'s [=XRSpace/session=] does not equal |session|, throw an {{InvalidStateError}} and abort these steps.
+  1. If |locatableSpace|'s [=XRSpace/trackingState=] equals "untracked", return <code>null</code>.
+  1. If the underlying tracking system cannot establish a relationship between |locatableSpace| and |originSpace|, return <code>null</code>.
+  1. Let |pose| be an {{XRPose}}.
+  1. Set |pose/rigidTransform| be an {{XRRigidTransform}} equal to the location of the origin of |locatableSpace| such that the origin of |originSpace| is at all zeros (yeah yeah yeah, you get it).
+  1. If |locatableSpace/trackingState| equals "3DOF" set |pose/emulatedPosition| to <code>true</code>.
+  1. If |originSpace/trackingState| equals "3DOF" set |pose/emulatedPosition| to <code>true</code>.
+  1. Return |pose|.
 </div>
 
 <div class="algorithm unstable" data-algorithm="get-pose">
 
 When the <dfn method for="XRFrame">getPose(|space|, |relativeTo|)</dfn> method is invoked, the user agent MUST run the following steps:
 
-  1. If the {{XRFrame}}'s [=active=] boolean is <code>false</code>, throw a {{InvalidStateError}} and abort these steps.
-  1. Let |session| be the {{XRFrame}}'s {{XRFrame/session}} object.
-  1. If |space|'s [=XRSpace/session=] does not equal |session|, throw an {{InvalidStateError}} and abort these steps.
-  1. If |relativeTo|'s [=XRSpace/session=] does not equal |session|, throw an {{InvalidStateError}} and abort these steps.
-  1. If |space|'s pose cannot be determined relative to |relativeTo|, return <code>null</code>
-  1. Return a new {{XRPose}} describing |space|'s pose relative to the origin of |relativeTo|.
+  1. Let |pose| be the thing from the previous algorithm.
+  1. Return |pose|.
+
+</div>
+
+<div class="algorithm" data-algorithm="get-viewer-pose">
+
+When the <dfn method for="XRFrame">getViewerPose(|referenceSpace|)</dfn> method is invoked, the user agent MUST run the following steps:
+
+  1. Let |pose| be the thing from the previous algorithm.
+  1. Add the view data here.
+  1. Return |pose|.
 
 </div>
 
@@ -722,6 +743,26 @@ An {{XRSpace}} describes an entity that is tracked by the [=/XR device=]'s track
 </pre>
 
 Each {{XRSpace}} has a <dfn for="XRSpace">session</dfn> which is set to the {{XRSession}} that created the {{XRSpace}.
+
+Each {{XRSpace}} has a <dfn for="XRSpace">
+
+Define an internal getTransform(frame) here.  That get pose is then used by all the other algorithms.
+
+ViewerSpace {#viewer-space}
+-----------
+
+Each {{XRSession}} has a {{XRSession/viewerSpace}} which blah blah blah
+
+<div class="algorithm" data-algorithm="initialize-viewerspace">
+
+When an <dfn>viewerSpace</dfn> object is created for an {{XRSession}} |session|, the user agent MUST <dfn>initialize the viewer space</dfn> by running the following steps:
+
+  1. Steps here 
+  1. Define a |views| array.  Each view has matrix that relates it to the viewerSpace.
+
+</div>
+
+Define an internal getViewTransform(frame) and use it in the other functions.
 
 XRReferenceSpace {#xrreferencespace-interface}
 ------------------
@@ -777,12 +818,6 @@ Note: The {{position-disabled}} subtype is primarily intended for use with pre-r
   
 Devices that support {{XRReferenceSpaceType/stationary}} reference spaces MUST support all {{XRStationaryReferenceSpaceSubtype}}s.
 
-<section class="unstable">
-The <dfn attribute for="XRReferenceSpace">originOffset</dfn> attribute is a {{XRRigidTransform}} that describes an additional translation and rotation to be applied to any poses queried using the {{XRReferenceSpace}}. It is initially set to an [=identity transform=]. Changes to the {{originOffset}} take effect immediately, and subsequent poses queried with the {{XRReferenceSpace}} will take into account the new transform.
-
-Note: Changing the {{originOffset}} between pose queries in a single [=XR animation frame=] is not advised, since it will cause inconsistencies in the tracking data and rendered output.
-</section>
-
 The <dfn attribute for="XRReferenceSpace">onreset</dfn> attribute is an [=Event handler IDL attribute=] for the {{reset}} event type.
 
 <div class="algorithm" data-algorithm="create-frame-of-reference">
@@ -793,6 +828,7 @@ When an {{XRReferenceSpace}} is requested, the user agent MUST <dfn>create a ref
   1. Initialize [=XRSpace/session=] to be |session|.
   1. Let |options| be the {{XRReferenceSpaceOptions}} passed to {{requestReferenceSpace()}}.
   1. Let |type| be set to |options| {{XRReferenceSpaceOptions/type}}.
+  1. Let |originOffset| be set to |options| {{XRReferenceSpaceOptions/originOffset}}.
   1. Let |referenceSpace| be set to <code>null</code>.
   1. If |type| is {{identity}} let |referenceSpace| be a new {{XRReferenceSpace}}.
   1. If |type| is {{stationary}} and |options| does not have a {{XRReferenceSpaceOptions/subtype}} field, throw {{TypeError}}.
@@ -800,6 +836,7 @@ When an {{XRReferenceSpace}} is requested, the user agent MUST <dfn>create a ref
   1. If |type| is {{stationary}}, let |referenceSpace| be a new {{XRStationaryReferenceSpace}} with a [=XRStationaryReferenceSpace/subtype=] of |options|'s {{XRReferenceSpaceOptions/subtype}}.
   1. Else if |type| is {{bounded}}, let |referenceSpace| be a new {{XRBoundedReferenceSpace}}.
   1. Else if |type| is {{unbounded}}, let |referenceSpace| be a new {{XRUnboundedReferenceSpace}}.
+  1. Let |referenceSpace| {{XRSpace/originOffset}} be set to |originOffset|.
   1. Return |referenceSpace|.
 
 </div>
@@ -807,7 +844,7 @@ When an {{XRReferenceSpace}} is requested, the user agent MUST <dfn>create a ref
 XRStationaryReferenceSpace {#xrstationaryreferencespace-interface}
 ----------------------------
 
-An {{XRStationaryReferenceSpace}} represents a tracking space that the user is not expected to move around within. Tracking in a {{stationary}} reference space is optimized for the assumption that the user will not move much beyond their starting point, if at all. For devices with [=6DoF=] tracking, {{stationary}} reference spaces should emphasize keeping the origin stable relative to the user's environment.
+An {{XRStationaryReferenceSpace}} represents a tracking space that the user is not expected to move around within. Tracking in a {{stationary}} reference space is optimized for the assumption that the user will not move much beyond their starting point, if at all. For devices with [=6DoF=] tracking, {{stationary}} reference spaces should emphasize keeping the [=XRSpace/trackedOrigin=] stable relative to the user's environment.
 
 <pre class="idl">
 [SecureContext, Exposed=Window]
@@ -820,7 +857,7 @@ Each {{XRStationaryReferenceSpace}} has a <dfn for="XRStationaryReferenceSpace">
 XRBoundedReferenceSpace {#xrboundedreferencespace-interface}
 ----------------------------
 
-An {{XRBoundedReferenceSpace}} represents a floor-relative tracking space where the user is expected to move within a pre-established boundary. Tracking in an {{bounded}} reference space is optimized for keeping the reference space origin and bounds geometry stable relative to the user's environment.
+An {{XRBoundedReferenceSpace}} represents a floor-relative tracking space where the user is expected to move within a pre-established boundary. Tracking in an {{bounded}} reference space is optimized for keeping the [=XRSpace/trackedOrigin=] stable relative to the user's environment.
 
 <pre class="idl">
 [SecureContext, Exposed=Window]
@@ -829,13 +866,13 @@ interface XRBoundedReferenceSpace : XRReferenceSpace {
 };    
 </pre>
 
-The origin of a {{XRBoundedReferenceSpace}} MUST be positioned at the floor, such that the `y` axis equals `0` at floor level. The `x` and `z` position and orientation are initialized based on the conventions of the underlying platform, typically expected to be near the center of the room facing in a logical forward direction.
+The [=XRSpace/trackedOrigin=] of a {{XRBoundedReferenceSpace}} MUST be positioned at the floor, such that the `y` axis equals `0` at floor level. The `x` and `z` position and orientation are initialized based on the conventions of the underlying platform, typically expected to be near the center of the room facing in a logical forward direction.
 
 Note: Other XR platforms sometimes refer to the type of tracking offered by a {{bounded}} reference space as "room scale" tracking. An {{XRBoundedReferenceSpace}} is not intended to describe multi-room spaces, areas with uneven floor levels, or very large open areas. Content that needs to handle those scenarios should use an {{XRUnboundedReferenceSpace}}.
 
-The <dfn attribute for="XRBoundedReferenceSpace">boundsGeometry</dfn> attribute describes the border around the {{XRBoundedReferenceSpace}}, which the user can expect to safely move within. 
+The <dfn for="XRBoundedReferenceSpace">naturalBoundsGeometry</dfn> attribute describes the border around the {{XRBoundedReferenceSpace}}, which the user can expect to safely move within. The polygonal boundary is given as an array of {{DOMPointReadOnly}}s, which represents a loop of points at the edges of the safe space. The points describe offsets from the [=XRReference/trackedOrigin=] in meters. Points MUST be given in a clockwise order as viewed from above, looking towards the negative end of the Y axis. The {{DOMPointReadOnly/y}} value of each point MUST be <code>0</code> and the {{DOMPointReadOnly/w}} value of each point MUST be <code>1</code>. The bounds can be considered to originate at the floor and extend infinitely high. The shape it describes MAY be convex or concave.
 
-The polygonal boundary is given as an array of {{DOMPointReadOnly}}s, which represents a loop of points at the edges of the safe space. The points describe offsets from the {{XRReferenceSpace}} origin in meters. Points MUST be given in a clockwise order as viewed from above, looking towards the negative end of the Y axis. The {{DOMPointReadOnly/y}} value of each point MUST be <code>0</code> and the {{DOMPointReadOnly/w}} value of each point MUST be <code>1</code>. The bounds can be considered to originate at the floor and extend infinitely high. The shape it describes MAY be convex or concave.
+The <dfn attribute for="XRBoundedReferenceSpace">boundsGeometry</dfn> attribute is an array of {{DOMPointReadOnly}}s such that each entry is equal to the entry in [=XRBoundedReferenceSpace/naturalBoundsGeometry=] [=matrix multiplied=] by the {{XRSpace/originOffset}}.
 
 Note: Content should not require the user to move beyond the {{boundsGeometry}}. It is possible for the user to move beyond the bounds if their physical surroundings allow for it, resulting in position values outside of the polygon they describe. This is not an error condition and should be handled gracefully by page content.
 
@@ -844,7 +881,7 @@ Note: Content generally should not provide a visualization of the {{boundsGeomet
 XRUnboundedReferenceSpace {#xrunboundedreferencespace-interface}
 ----------------------------
 
-An {{XRUnboundedReferenceSpace}} represents a tracking space where the user is expected to move freely around their environment, potentially even long distances from their starting point. Tracking in an {{unbounded}} reference space is optimized for stability around the user's current position, and as such the tracking origin may drift over time.
+An {{XRUnboundedReferenceSpace}} represents a tracking space where the user is expected to move freely around their environment, potentially even long distances from their starting point. Tracking in an {{unbounded}} reference space is optimized for stability around the user's current position, and as such the [=XRSpace/trackedOrigin=] may drift over time.
 
 <pre class="idl">
 [SecureContext, Exposed=Window] 
@@ -945,6 +982,22 @@ To <dfn>normalize</dfn> a list of components the UA MUST perform the following s
   1. Let |length| be the square root of the sum of the squares of each component.
   1. If |length| is <code>0</code>, throw an {{InvalidStateError}}  and abort these steps.
   1. Divide each component by |length| and set the component.
+
+</div>
+
+Matrix Multiplication {#matrixmultiplication}
+--------------
+
+There are several algorithms which call for matrices to be multiplied, which results in a new matrix. TODO should this be a {{XRRigidTransform}} multiplication instead?
+
+<div class="algorithm" data-algorithm="matrix-multiplication">
+
+To <dfn>multiply matrices</dfn> the UA MUST perform the following steps:
+
+  1. Let |transformA| be the transform on the left side of the multiplication.
+  1. Let |transformB| be the transform on the right side of the multiplication.
+  1. This is a math step involving |transformA| and |transformB| that results in |transformC|.
+  1. Return |transformC|.
 
 </div>
 
