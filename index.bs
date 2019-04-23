@@ -772,10 +772,11 @@ enum XRStationaryReferenceSpaceSubtype {
 dictionary XRReferenceSpaceOptions {
   required XRReferenceSpaceType type;
   XRStationaryReferenceSpaceSubtype subtype;
+  XRRigidTransform originOffset;
 };
 
 [SecureContext, Exposed=Window] interface XRReferenceSpace : XRSpace {
-  attribute XRRigidTransform originOffset;
+  [SameObject] readonly attribute XRRigidTransform originOffset;
   attribute EventHandler onreset;
 };
 </pre>
@@ -803,9 +804,7 @@ Note: The {{position-disabled}} subtype is primarily intended for use with pre-r
 Devices that support {{XRReferenceSpaceType/stationary}} reference spaces MUST support all {{XRStationaryReferenceSpaceSubtype}}s.
 
 <section class="unstable">
-The <dfn attribute for="XRReferenceSpace">originOffset</dfn> attribute is a {{XRRigidTransform}} that describes an additional translation and rotation to be applied to any poses queried using the {{XRReferenceSpace}}. It is initially set to an [=identity transform=]. Changes to the {{originOffset}} take effect immediately, and subsequent poses queried with the {{XRReferenceSpace}} will take into account the new transform.
-
-Note: Changing the {{originOffset}} between pose queries in a single [=XR animation frame=] is not advised, since it will cause inconsistencies in the tracking data and rendered output.
+The <dfn attribute for="XRReferenceSpace">originOffset</dfn> attribute is a {{XRRigidTransform}} that describes an additional translation and rotation to be applied to any poses queried using the {{XRReferenceSpace}}. If not provided during creation, it is set to an [=identity transform=].
 </section>
 
 The <dfn attribute for="XRReferenceSpace">onreset</dfn> attribute is an [=Event handler IDL attribute=] for the {{reset}} event type.
@@ -825,6 +824,7 @@ When an {{XRReferenceSpace}} is requested, the user agent MUST <dfn>create a ref
   1. If |type| is {{stationary}}, let |referenceSpace| be a new {{XRStationaryReferenceSpace}} with a [=XRStationaryReferenceSpace/subtype=] of |options|'s {{XRReferenceSpaceOptions/subtype}}.
   1. Else if |type| is {{bounded}}, let |referenceSpace| be a new {{XRBoundedReferenceSpace}}.
   1. Else if |type| is {{unbounded}}, let |referenceSpace| be a new {{XRUnboundedReferenceSpace}}.
+  1. If |options| has a {{XRReferenceSpaceOptions/originOffset}} field, set |referenceSpace|'s {{XRReferenceSpace/originOffset}} to {{XRReferenceSpaceOptions/originOffset}}
   1. Return |referenceSpace|.
 
 </div>
