@@ -735,7 +735,9 @@ To <dfn>populate the pose</dfn> of a {{XRSpace}} |sourceSpace| in an  {{XRSpace}
   1. If |sourceSpace|'s [=XRSpace/session=] does not equal |session|, throw an {{InvalidStateError}} and abort these steps.
   1. If |destinationSpace|'s [=XRSpace/session=] does not equal |session|, throw an {{InvalidStateError}} and abort these steps.
   1. If |destinationSpace|'s pose cannot be determined relative to |sourceSpace| at the time represented by |frame|, set |pose| to <code>null</code>, and abort these steps.
-  1. If either |sourceSpace| or |destinationSpace| have a [=XRSpace/native origin=] of [=XRSpace/identity=], and the other space has a [=XRSpace/native origin=] that is not [=XRSpace/identity=] or [=XRSpace/viewer-space=], set |pose| to <code>null</code>, and abort these steps.
+  1. If either |sourceSpace| or |destinationSpace| have a [=XRSpace/native origin=] of [=XRSpace/identity=], perform the following steps:
+      1. If the other space has a [=XRSpace/native origin=] that is [=XRSpace/identity=] or [=XRSpace/viewer-space=], set |pose| to <code>null</code>, and abort these steps
+      1. If the other space has a [=XRSpace/native origin=] that is [=XRSpace/input-target-ray=], and the associated input has a {{XRInputSource/targetRayMode}} of {{XRTargetRayMode/screen}}, set |pose| to <code>null</code>, and abort these steps
   1. Let |transform| be |pose|'s {{XRPose/transform}}.
   1. Set |transform|'s {{XRRigidTransform/position}} to the location of |sourceSpace|'s [=effective origin=] in |destinationSpace|'s [=coordinate system=].
   1. Set |transform|'s {{XRRigidTransform/orientation}} to the orientation of |sourceSpace|'s [=effective origin=] in |destinationSpace|'s [=coordinate system=].
@@ -765,7 +767,7 @@ The [=native origin=] of various {{XRSpace}} [=XRSpace/internal type=]s is defin
     <tr>
       <td>[=XRSpace/identity=]</td>
       <td>The pose of the headset</td>
-      <td>This space can only be related with {{XRSession/viewerSpace}} (also, potentially in the future, screen-relative input spaces) for privacy reasons, so it primarily exists to be able to apply an offset to the viewer space.</td>
+      <td>This space can only be related with [=XRSpace/viewer-space=] and screen-space [=XRSpace/input-target-ray=] spaces for privacy reasons, so it primarily exists to be able to apply an offset to the viewer space.</td>
     </tr>
     <tr>
       <td>[=XRSpace/input-target-ray=]</td>
