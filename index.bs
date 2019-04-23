@@ -734,7 +734,8 @@ To <dfn>populate the pose</dfn> of a {{XRSpace}} |sourceSpace| in an  {{XRSpace}
   1. Let |session| be |frame|'s {{XRFrame/session}} object.
   1. If |sourceSpace|'s [=XRSpace/session=] does not equal |session|, throw an {{InvalidStateError}} and abort these steps.
   1. If |destinationSpace|'s [=XRSpace/session=] does not equal |session|, throw an {{InvalidStateError}} and abort these steps.
-  1. If |destinationSpace|'s pose cannot be determined relative to |sourceSpace| at the time represented by |frame|, set |pose| to <code>null</code>.
+  1. If |destinationSpace|'s pose cannot be determined relative to |sourceSpace| at the time represented by |frame|, set |pose| to <code>null</code>, and abort these steps.
+  1. If either |sourceSpace| or |destinationSpace| have a [=XRSpace/native origin=] of [=XRSpace/identity=], and the other space has a [=XRSpace/native origin=] that is not [=XRSpace/identity=] or [=XRSpace/viewer-space=], set |pose| to <code>null</code>, and abort these steps.
   1. Let |transform| be |pose|'s {{XRPose/transform}}.
   1. Set |transform|'s {{XRRigidTransform/position}} to the location of |sourceSpace|'s [=effective origin=] in |destinationSpace|'s [=coordinate system=].
   1. Set |transform|'s {{XRRigidTransform/orientation}} to the orientation of |sourceSpace|'s [=effective origin=] in |destinationSpace|'s [=coordinate system=].
