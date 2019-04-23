@@ -493,7 +493,7 @@ The <dfn attribute for="XRSession">environmentBlendMode</dfn> attribute returns 
 
 NOTE: Most Virtual Reality devices exhibit {{XREnvironmentBlendMode/opaque}} blending behavior. Augmented Reality devices that use transparent optical elements frequently exhibit {{XREnvironmentBlendMode/additive}} blending behavior, and Augmented Reality devices that use passthrough cameras frequently exhibit {{XREnvironmentBlendMode/alpha-blend}} blending behavior.
 
-The <dfn attribute for="XRSession">viewerSpace</dfn> attribute is an {{XRSpace}} which tracks the pose of the [=viewer=]. It has an [=XRSpace/internal type=] of <dfn dfn for=XRSpace>"viewer space"</dfn>
+The <dfn attribute for="XRSession">viewerSpace</dfn> attribute is an {{XRSpace}} which tracks the pose of the [=viewer=]. It has an [=XRSpace/internal type=] of <dfn dfn for=XRSpace>viewer-space</dfn>
 
 NOTE: For any given {{XRFrame}} calling {{XRFrame/getPose()}} with the {{XRSession/viewerSpace}} and any {{XRReferenceSpace}} will return the same pose (without the {{views}} array) as calling {{XRFrame/getViewerPose()}} with the same {{XRReferenceSpace}}.
 
@@ -745,6 +745,65 @@ ISSUE: Describe how the {{XRPose/emulatedPosition}} boolean is determined.
 
 Each {{XRSpace}} also has a <dfn for="XRSpace">session</dfn> which is set to the {{XRSession}} that created the {{XRSpace}}.
 
+The [=native origin=] of various {{XRSpace}} [=XRSpace/internal type=]s is defined as follows:
+
+<table class="index">
+  <thead>
+    <tr>
+      <th>[=XRSpace/internal type=]</th>
+      <th>[=native origin=]</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>[=XRSpace/viewer-space=]</td>
+      <td>The pose of the headset</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>[=XRSpace/identity=]</td>
+      <td>The pose of the headset</td>
+      <td>This space can only be related with {{XRSession/viewerSpace}} (also, potentially in the future, screen-relative input spaces) for privacy reasons, so it primarily exists to be able to apply an offset to the viewer space.</td>
+    </tr>
+    <tr>
+      <td>[=XRSpace/input-target-ray=]</td>
+      <td>The pose of the preferred pointing ray of the relevant {{XRInputSource}} as defined by the {{XRInputSource/targetRayMode}}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>[=XRSpace/input-grip=]</td>
+      <td>The pose that should be used to render a virtual object for the relevant {{XRInputSource}} such that it appears to be held in the user’s hand. Its origin is the centroid of the user's gripping fingers, with <code>Z</code>aligned with their grip (<code>-Z</code> pointing towards the thumb), and with <code>X</code> perpendicular to the back of their hand (<code>+X</code> pointing outwards from the back of the hand for the right hand, and inwards for the left hand). The <code>Y</code> axis is derived from these two and will be approximately along the person's arm.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>{{XRStationaryReferenceSpaceSubtype/eye-level}}</td>
+      <td>The [=XRSpace/native origin=] of this type is near the user's head at the time of session creation. It does not change over time.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>{{XRStationaryReferenceSpaceSubtype/floor-level}}</td>
+      <td>The [=XRSpace/native origin=] of this type is near the user at the floor level at the time of session creation, at a safe position to stand. It does not change over time.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>{{XRStationaryReferenceSpaceSubtype/position-disabled}}</td>
+      <td>The [=XRSpace/native origin=] of this type has a fixed orientation (typically, the orientation of the headset at time of session creation). It's position is same as that of [=XRSpace/viewer-space=], i.e., it has the position of the headset.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>[=XRSpace/bounded=]</td>
+      <td>The [=XRSpace/native origin=] of this type will be at a position on the floor for which a boundary can be provided to the app, defining an empty region where it is safe for the user to move around. The y value will be 0 at floor level, while the exact x, z, and orientation values will be initialized based on the conventions of the underlying platform for room-scale experiences. This origin may change if the user updates their device settings.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>[=XRSpace/unbounded=]</td>
+      <td>The [=XRSpace/native origin=] of this space is initialized at a position near the headset at the time of session creation, with the exact coordinate and orientation values depending on the conventions of the underlying platform. This origin may drift over time in order to maintain maximal stability for the user as they walk far from it.</td>
+      <td></td>
+    </tr>
+</table>
+
+
 XRReferenceSpace {#xrreferencespace-interface}
 ------------------
 
@@ -791,9 +850,9 @@ An {{XRReferenceSpace}} is obtained by calling {{XRSession/requestReferenceSpace
 
 If a {{XRReferenceSpaceOptions/type}} of {{XRReferenceSpaceType/stationary}} is specified a {{XRReferenceSpaceOptions/subtype}} must also be given:
 
-  - Passing a {{XRReferenceSpaceOptions/subtype}} of <dfn enum-value for="XRStationaryReferenceSpaceSubtype">eye-level</dfn> creates an {{XRStationaryReferenceSpace}} with it's origin near the user's head at the time of creation. The exact position and orientation will be initialized based on the conventions of the underlying platform.
+  - Passing a {{XRReferenceSpaceOptions/subtype}} of <dfn enum-value for="XRStationaryReferenceSpaceSubtype">eye-level</dfn> creates an {{XRStationaryReferenceSpace}} with it's [=XRSpace/native origin=] near the user's head at the time of creation. The exact position and orientation will be initialized based on the conventions of the underlying platform.
   
-  - Passing a {{XRReferenceSpaceOptions/subtype}} of <dfn enum-value for="XRStationaryReferenceSpaceSubtype">floor-level</dfn> creates an {{XRStationaryReferenceSpace}} with it's origin positioned at the floor in a safe position for the user to stand. The `y` axis equals `0` at floor level, with the `x` and `z` position and orientation initialized based on the conventions of the underlying platform. If the floor level isn't known it will be estimated.
+  - Passing a {{XRReferenceSpaceOptions/subtype}} of <dfn enum-value for="XRStationaryReferenceSpaceSubtype">floor-level</dfn> creates an {{XRStationaryReferenceSpace}} with it's [=XRSpace/native origin=] positioned at the floor in a safe position for the user to stand. The `y` axis equals `0` at floor level, with the `x` and `z` position and orientation initialized based on the conventions of the underlying platform. If the floor level isn't known it will be estimated.
   
   - Passing a {{XRReferenceSpaceOptions/subtype}} of <dfn enum-value for="XRStationaryReferenceSpaceSubtype">position-disabled</dfn> creates an {{XRStationaryReferenceSpace}} where orientation is tracked but the [=viewer=]s position is always reported as being at the origin.
 
@@ -878,7 +937,7 @@ interface XRUnboundedReferenceSpace : XRReferenceSpace {
 };
 </pre>
 
-The [=XRSpace/internal type=] of an {{XRUnboundedReferenceSpace}} is <dfn>unbounded</dfn dfn for=XRSpace>.
+The [=XRSpace/internal type=] of an {{XRUnboundedReferenceSpace}} is <dfn dfn for="XRSpace">unbounded</dfn dfn for=XRSpace>.
 
 Views {#views}
 =====
@@ -1183,7 +1242,7 @@ Note: Some input sources, like an {{XRInputSource}} with {{targetRayMode}} set t
 
 The <dfn attribute for="XRInputSource">targetRaySpace</dfn> attribute is an {{XRSpace}} that tracks the pose of the preferred pointing ray of the {{XRInputSource}}, as defined by the {{targetRayMode}}. The {{XRInputSource/targetRaySpace}} has an [=XRSpace/internal type=] of <dfn dfn for=XRSpace>input-target-ray</dfn>.
 
-The <dfn attribute for="XRInputSource">gripSpace</dfn> attribute is an {{XRSpace}} that tracks the pose that should be used to render virtual objects such that they appear to be held in the user's hand. If the user were to hold a straight rod, this {{XRSpace}} places the origin at the centroid of their curled fingers and where the <code>-Z</code> axis points along the length of the rod towards their thumb. The <code>X</code> axis is perpendicular to the back of the hand being described, with back of the users right hand pointing towards <code>+X</code> and the back of the user's left hand pointing towards <code>-X</code>. The <code>Y</code> axis is implied by the relationship between the <code>X</code> and <code>Z</code> axis, with <code>+Y</code> roughly pointing in the direction of the user's arm. The {{XRInputSource/gripSpace}} has an [=XRSpace/internal type=] of <dfn dfn for=XRSpace>input-grip</dfn>.
+The <dfn attribute for="XRInputSource">gripSpace</dfn> attribute is an {{XRSpace}} that tracks the pose that should be used to render virtual objects such that they appear to be held in the user's hand.  The {{XRInputSource/gripSpace}} has an [=XRSpace/internal type=] of <dfn dfn for=XRSpace>input-grip</dfn>.
 
 The {{gripSpace}} MUST be <code>null</code> if the input source isn't inherently trackable such as for input sources with a {{targetRayMode}} of {{XRTargetRayMode/gaze}} or {{XRTargetRayMode/screen}}.
 
