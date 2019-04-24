@@ -1022,13 +1022,25 @@ An {{XRRigidTransform}} with a {{XRRigidTransform/position}} of <code>{ x: 0, y:
 
 <div class="algorithm" data-algorithm="multiply transforms">
 
-To <dfn lt="multiply">multiply two {{XRRigidTransform}}s</dfn>, |first| and |second|, the UA MUST perform the following steps:
+To <dfn lt="multiply">multiply two {{XRRigidTransform}}s</dfn>, |first| and |second|, the UA MUST perform one of the following sets of steps:
+
+Matrix multiplication and decomposition:
 
   1. Let |result| be a new {{XRRigidTransform}} object.
   1. Set |result|'s {{XRRigidTransform/matrix}} to the result of multiplying |first|'s {{XRRigidTransform/matrix}} by |second|'s {{XRRigidTransform/matrix}}.
   1. Set |result|'s {{XRRigidTransform/orientation}} to the quaternion that describes the rotation indicated by the top left 3x3 sub-matrix of |result|'s {{XRRigidTransform/matrix}}.
   1. Set |result|'s {{XRRigidTransform/position}} to the vector given by the fourth column of |result|'s {{XRRigidTransform/matrix}}.
   1. Return |result|.
+
+Directly manipulating position and orientation:
+
+  1. Let |result| be a new {{XRRigidTransform}} object.
+  1. Let |t_1| be a vector that is the result of rotating |second|'s {{XRRigidTransform/position}} vector by |first|'s {{XRRigidTransform/orientation}}. This is the column vector obtained by premultiplying |second|'s {{XRRigidTransform/position}}'s column-vector by |first|'s {{XRRigidTransform/orientation}}'s rotation matrix. It can also be obtained by computing <code>o^-1 * p * o</code> in quaternion notation, where <code>o</code> is |first|'s {{XRRigidTransform/orientation}} and <code>p</code> is |second|'s {{XRRigidTransform/position}}
+  1. Let |orientation| be a rotation quaternion described by the composition of the {{XRRigidTransform/orientation}}s of |first| and |second|
+  1. Let |position| be the composition of |t_1| and |first|'s {{XRRigidTransform/position}}
+  1. Set |result|'s {{XRRigidTransform/position}} to |position|
+  1. Set |result|'s {{XRRigidTransform/orientation}} to |orientation|
+  1. Return |result|
 
 </div>
 
