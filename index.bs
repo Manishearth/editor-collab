@@ -748,8 +748,9 @@ To <dfn lt="transform from">get the transform from</dfn> a |sourceSpace| to a |d
 
   1. If |destinationSpace|'s pose cannot be determined relative to |sourceSpace|, return <code>null</code>
   1. Let |transform| be a new {{XRRigidTransform}} object.
-  1. Set |transform|'s {{XRRigidTransform/position}} to the location of |sourceSpace|'s [=effective origin=] in |destinationSpace|'s [=coordinate system=].
-  1. Set |transform|'s {{XRRigidTransform/orientation}} to the rotation of |sourceSpace|'s [=effective origin=] in |destinationSpace|'s [=coordinate system=].
+  1. Let |inverse| be the {{XRRigidTransform/inverse}} of |destinationSpace|'s [=XRSpace/effective origin=]
+  1. Let |source| be |sourceSpace|'s [=XRSpace/effective origin=]
+  1. Set |transform| to the result of [=multiply=]ing |inverse| by |source|.
   1. Return |transform|.
 
 </div>
